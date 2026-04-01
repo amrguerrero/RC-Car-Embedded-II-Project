@@ -20,6 +20,7 @@ main.obj: ../uart0.h
 main.obj: ../CTI.h
 main.obj: ../clock80.h
 main.obj: ../PWM.h
+main.obj: ../ADC.h
 
 ../main.c:
 
@@ -60,4 +61,6 @@ C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/stdbool.h:
 ../clock80.h:
 
 ../PWM.h:
+
+../ADC.h:
 

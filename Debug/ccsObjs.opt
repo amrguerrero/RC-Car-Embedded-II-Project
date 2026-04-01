@@ -1,3 +1,4 @@
+"./ADC.obj"
 "./CTI.obj"
 "./PWM.obj"
 "./clock80.obj"

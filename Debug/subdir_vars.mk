@@ -9,6 +9,7 @@ CMD_SRCS += \
 ../tm4c123gh6pm.cmd 
 
 C_SRCS += \
+../ADC.c \
 ../CTI.c \
 ../PWM.c \
 ../clock80.c \
@@ -17,6 +18,7 @@ C_SRCS += \
 ../uart0.c 
 
 C_DEPS += \
+./ADC.d \
 ./CTI.d \
 ./PWM.d \
 ./clock80.d \
@@ -25,6 +27,7 @@ C_DEPS += \
 ./uart0.d 
 
 OBJS += \
+./ADC.obj \
 ./CTI.obj \
 ./PWM.obj \
 ./clock80.obj \
@@ -33,6 +36,7 @@ OBJS += \
 ./uart0.obj 
 
 OBJS__QUOTED += \
+"ADC.obj" \
 "CTI.obj" \
 "PWM.obj" \
 "clock80.obj" \
@@ -41,6 +45,7 @@ OBJS__QUOTED += \
 "uart0.obj" 
 
 C_DEPS__QUOTED += \
+"ADC.d" \
 "CTI.d" \
 "PWM.d" \
 "clock80.d" \
@@ -49,6 +54,7 @@ C_DEPS__QUOTED += \
 "uart0.d" 
 
 C_SRCS__QUOTED += \
+"../ADC.c" \
 "../CTI.c" \
 "../PWM.c" \
 "../clock80.c" \
