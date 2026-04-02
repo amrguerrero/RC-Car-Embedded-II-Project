@@ -1,32 +1,33 @@
 ******************************************************************************
                   TI ARM Linker PC v20.2.7                     
 ******************************************************************************
->> Linked Tue Mar 31 22:52:49 2026
+>> Linked Thu Apr  2 14:19:50 2026
 
 OUTPUT FILE NAME:   <Embedded II RC Car.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 00000a69
+ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 00000ba9
 
 
 MEMORY CONFIGURATION
 
          name            origin    length      used     unused   attr    fill
 ----------------------  --------  ---------  --------  --------  ----  --------
-  FLASH                 00000000   00040000  00000b0b  0003f4f5  R  X
-  SRAM                  20000000   00008000  00000205  00007dfb  RW X
+  FLASH                 00000000   00040000  00000c7f  0003f381  R  X
+  SRAM                  20000000   00008000  0000020b  00007df5  RW X
 
 
 SEGMENT ALLOCATION MAP
 
 run origin  load origin   length   init length attrs members
 ----------  ----------- ---------- ----------- ----- -------
-00000000    00000000    00000b10   00000b10    r-x
+00000000    00000000    00000c80   00000c80    r-x
   00000000    00000000    0000026c   0000026c    r-- .intvecs
-  0000026c    0000026c    00000876   00000876    r-x .text
-  00000ae2    00000ae2    00000011   00000011    r-- .const
-  00000af8    00000af8    00000018   00000018    r-- .cinit
-20000000    20000000    00000205   00000000    rw-
+  0000026c    0000026c    000009d2   000009d2    r-x .text
+  00000c3e    00000c3e    00000011   00000011    r-- .const
+  00000c50    00000c50    00000030   00000030    r-- .cinit
+20000000    20000000    0000020d   00000000    rw-
   20000000    20000000    00000200   00000000    rw- .stack
-  20000200    20000200    00000005   00000000    rw- .data
+  20000200    20000200    00000006   00000000    rw- .bss
+  20000208    20000208    00000005   00000000    rw- .data
 
 
 SECTION ALLOCATION MAP
@@ -37,35 +38,43 @@ section   page    origin      length       input sections
 .intvecs   0    00000000    0000026c     
                   00000000    0000026c     tm4c123gh6pm_startup_ccs.obj (.intvecs)
 
-.text      0    0000026c    00000876     
+.text      0    0000026c    000009d2     
                   0000026c    00000340     uart0.obj (.text)
-                  000005ac    0000015c     main.obj (.text)
-                  00000708    00000138     PWM.obj (.text)
-                  00000840    000000e0     ADC.obj (.text)
-                  00000920    0000009c     rtsv7M4_T_le_v4SPD16_eabi.lib : memcpy_t2.asm.obj (.text)
-                  000009bc    00000068                                   : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
-                  00000a24    00000044                                   : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit:__TI_auto_init_nobinit_nopinit)
-                  00000a68    00000034                                   : boot_cortex_m.c.obj (.text:_c_int00_noargs:_c_int00_noargs)
-                  00000a9c    00000024     clock80.obj (.text)
-                  00000ac0    0000000e     rtsv7M4_T_le_v4SPD16_eabi.lib : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
-                  00000ace    0000000c     tm4c123gh6pm_startup_ccs.obj (.text)
-                  00000ada    00000004     rtsv7M4_T_le_v4SPD16_eabi.lib : pre_init.c.obj (.text:_system_pre_init)
-                  00000ade    00000004                                   : exit.c.obj (.text:abort:abort)
+                  000005ac    0000029c     main.obj (.text)
+                  00000848    00000138     PWM.obj (.text)
+                  00000980    000000e0     ADC.obj (.text)
+                  00000a60    0000009c     rtsv7M4_T_le_v4SPD16_eabi.lib : memcpy_t2.asm.obj (.text)
+                  00000afc    00000068                                   : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
+                  00000b64    00000044                                   : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit:__TI_auto_init_nobinit_nopinit)
+                  00000ba8    00000034                                   : boot_cortex_m.c.obj (.text:_c_int00_noargs:_c_int00_noargs)
+                  00000bdc    00000024     clock80.obj (.text)
+                  00000c00    0000001c     rtsv7M4_T_le_v4SPD16_eabi.lib : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset:__TI_zero_init_nomemset)
+                  00000c1c    0000000e                                   : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
+                  00000c2a    0000000c     tm4c123gh6pm_startup_ccs.obj (.text)
+                  00000c36    00000004     rtsv7M4_T_le_v4SPD16_eabi.lib : pre_init.c.obj (.text:_system_pre_init)
+                  00000c3a    00000004                                   : exit.c.obj (.text:abort:abort)
 
-.const     0    00000ae2    00000011     
-                  00000ae2    00000011     uart0.obj (.const:.string:$P$T0$1)
+.const     0    00000c3e    00000011     
+                  00000c3e    00000011     uart0.obj (.const:.string:$P$T0$1)
 
-.cinit     0    00000af8    00000018     
-                  00000af8    00000008     (__TI_handler_table)
-                  00000b00    00000007     (.cinit..data.load) [load image, compression = lzss]
-                  00000b07    00000001     --HOLE-- [fill = 0]
-                  00000b08    00000008     (__TI_cinit_table)
+.cinit     0    00000c50    00000030     
+                  00000c50    0000000c     (__TI_handler_table)
+                  00000c5c    00000004     --HOLE-- [fill = 0]
+                  00000c60    00000008     (.cinit..bss.load) [load image, compression = zero_init]
+                  00000c68    00000007     (.cinit..data.load) [load image, compression = lzss]
+                  00000c6f    00000001     --HOLE-- [fill = 0]
+                  00000c70    00000010     (__TI_cinit_table)
 
 .init_array 
 *          0    00000000    00000000     UNINITIALIZED
 
-.data      0    20000200    00000005     UNINITIALIZED
-                  20000200    00000005     PWM.obj (.data)
+.bss       0    20000200    00000006     UNINITIALIZED
+                  20000200    00000002     (.common:steerXCenter)
+                  20000202    00000002     (.common:steerYCenter)
+                  20000204    00000002     (.common:throttleCenter)
+
+.data      0    20000208    00000005     UNINITIALIZED
+                  20000208    00000005     PWM.obj (.data)
 
 .stack     0    20000000    00000200     UNINITIALIZED
                   20000000    00000004     rtsv7M4_T_le_v4SPD16_eabi.lib : boot_cortex_m.c.obj (.stack)
@@ -80,105 +89,114 @@ MODULE SUMMARY
        ------                         ----   -------   -------
     .\
        uart0.obj                      832    17        0      
+       main.obj                       668    0         6      
        tm4c123gh6pm_startup_ccs.obj   12     620       0      
-       main.obj                       348    0         0      
        PWM.obj                        312    0         5      
        ADC.obj                        224    0         0      
        clock80.obj                    36     0         0      
     +--+------------------------------+------+---------+---------+
-       Total:                         1764   637       5      
+       Total:                         2084   637       11     
                                                               
     C:\ti\ccs1281\ccs\tools\compiler\ti-cgt-arm_20.2.7.LTS\lib\rtsv7M4_T_le_v4SPD16_eabi.lib
        memcpy_t2.asm.obj              156    0         0      
        copy_decompress_lzss.c.obj     104    0         0      
        autoinit.c.obj                 68     0         0      
        boot_cortex_m.c.obj            52     0         0      
+       copy_zero_init.c.obj           28     0         0      
        copy_decompress_none.c.obj     14     0         0      
        exit.c.obj                     4      0         0      
        pre_init.c.obj                 4      0         0      
     +--+------------------------------+------+---------+---------+
-       Total:                         402    0         0      
+       Total:                         430    0         0      
                                                               
        Stack:                         0      0         512    
-       Linker Generated:              0      23        0      
+       Linker Generated:              0      43        0      
     +--+------------------------------+------+---------+---------+
-       Grand Total:                   2166   660       517    
+       Grand Total:                   2514   680       523    
 
 
 LINKER GENERATED COPY TABLES
 
-__TI_cinit_table @ 00000b08 records: 1, size/record: 8, table size: 8
-	.data: load addr=00000b00, load size=00000007 bytes, run addr=20000200, run size=00000005 bytes, compression=lzss
+__TI_cinit_table @ 00000c70 records: 2, size/record: 8, table size: 16
+	.bss: load addr=00000c60, load size=00000008 bytes, run addr=20000200, run size=00000006 bytes, compression=zero_init
+	.data: load addr=00000c68, load size=00000007 bytes, run addr=20000208, run size=00000005 bytes, compression=lzss
 
 
 LINKER GENERATED HANDLER TABLE
 
-__TI_handler_table @ 00000af8 records: 2, size/record: 4, table size: 8
+__TI_handler_table @ 00000c50 records: 3, size/record: 4, table size: 12
 	index: 0, handler: __TI_decompress_lzss
 	index: 1, handler: __TI_decompress_none
+	index: 2, handler: __TI_zero_init
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
 
 address   name                          
 -------   ----                          
-00000adf  C$$EXIT                       
-00000acf  ResetISR                      
+00000c3b  C$$EXIT                       
+00000c2b  ResetISR                      
 20000200  __STACK_END                   
 00000200  __STACK_SIZE                  
 20000200  __STACK_TOP                   
-00000b08  __TI_CINIT_Base               
-00000b10  __TI_CINIT_Limit              
-00000af8  __TI_Handler_Table_Base       
-00000b00  __TI_Handler_Table_Limit      
-00000a25  __TI_auto_init_nobinit_nopinit
-000009bd  __TI_decompress_lzss          
-00000ac1  __TI_decompress_none          
+00000c70  __TI_CINIT_Base               
+00000c80  __TI_CINIT_Limit              
+00000c50  __TI_Handler_Table_Base       
+00000c5c  __TI_Handler_Table_Limit      
+00000b65  __TI_auto_init_nobinit_nopinit
+00000afd  __TI_decompress_lzss          
+00000c1d  __TI_decompress_none          
 ffffffff  __TI_pprof_out_hndl           
 ffffffff  __TI_prof_data_size           
 ffffffff  __TI_prof_data_start          
 00000000  __TI_static_base__            
-00000921  __aeabi_memcpy                
-00000921  __aeabi_memcpy4               
-00000921  __aeabi_memcpy8               
+00000c01  __TI_zero_init_nomemset       
+00000a61  __aeabi_memcpy                
+00000a61  __aeabi_memcpy4               
+00000a61  __aeabi_memcpy8               
 ffffffff  __binit__                     
 ffffffff  __c_args__                    
 UNDEFED   __mpu_init                    
 20000000  __stack                       
 20000000  __start___llvm_prf_cnts       
 20000000  __stop___llvm_prf_cnts        
-00000a69  _c_int00_noargs               
+00000ba9  _c_int00_noargs               
 UNDEFED   _system_post_cinit            
-00000adb  _system_pre_init              
-00000adf  abort                         
+00000c37  _system_pre_init              
+00000c3b  abort                         
 000005cf  applyDeadband                 
 ffffffff  binit                         
+000005f9  calibrateJoysticks            
 00000000  g_pfnVectors                  
-000007e7  getPWM0Duty                   
+00000927  getPWM0Duty                   
 0000036d  getcUart0                     
-00000841  initADC                       
-00000629  initGPIO                      
-00000663  initHardware                  
-00000709  initPWM0                      
-00000a9d  initSystemClockTo40Mhz        
-00000aa5  initSystemClockTo80Mhz        
+00000981  initADC                       
+0000071f  initGPIO                      
+00000759  initHardware                  
+00000849  initPWM0                      
+00000bdd  initSystemClockTo40Mhz        
+00000be5  initSystemClockTo80Mhz        
 0000026d  initUart0                     
 00000381  kbhitUart0                    
-00000685  main                          
+0000077f  main                          
 000005ad  mapJoystick                   
-00000921  memcpy                        
+0000068f  mapJoystickCalibrated         
+00000a61  memcpy                        
 00000325  putcUart0                     
 00000401  putfloatUart0                 
 00000509  puthex8Uart0                  
 00000541  puthexArrayUart0              
 0000039b  putintUart0                   
 00000341  putsUart0                     
-000008af  readADC                       
-000005f9  readControllerInputs          
-000007f7  setMotorSpeed                 
-000007a3  setPWM0Duty                   
+000009ef  readADC                       
+000006d1  readControllerInputs          
+00000937  setMotorSpeed                 
+000008e3  setPWM0Duty                   
 000002e1  setUart0BaudRate              
-000007ed  stopPWM0                      
+20000200  steerXCenter                  
+20000202  steerYCenter                  
+0000092d  stopPWM0                      
+20000204  throttleCenter                
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
@@ -200,40 +218,46 @@ address   name
 00000541  puthexArrayUart0              
 000005ad  mapJoystick                   
 000005cf  applyDeadband                 
-000005f9  readControllerInputs          
-00000629  initGPIO                      
-00000663  initHardware                  
-00000685  main                          
-00000709  initPWM0                      
-000007a3  setPWM0Duty                   
-000007e7  getPWM0Duty                   
-000007ed  stopPWM0                      
-000007f7  setMotorSpeed                 
-00000841  initADC                       
-000008af  readADC                       
-00000921  __aeabi_memcpy                
-00000921  __aeabi_memcpy4               
-00000921  __aeabi_memcpy8               
-00000921  memcpy                        
-000009bd  __TI_decompress_lzss          
-00000a25  __TI_auto_init_nobinit_nopinit
-00000a69  _c_int00_noargs               
-00000a9d  initSystemClockTo40Mhz        
-00000aa5  initSystemClockTo80Mhz        
-00000ac1  __TI_decompress_none          
-00000acf  ResetISR                      
-00000adb  _system_pre_init              
-00000adf  C$$EXIT                       
-00000adf  abort                         
-00000af8  __TI_Handler_Table_Base       
-00000b00  __TI_Handler_Table_Limit      
-00000b08  __TI_CINIT_Base               
-00000b10  __TI_CINIT_Limit              
+000005f9  calibrateJoysticks            
+0000068f  mapJoystickCalibrated         
+000006d1  readControllerInputs          
+0000071f  initGPIO                      
+00000759  initHardware                  
+0000077f  main                          
+00000849  initPWM0                      
+000008e3  setPWM0Duty                   
+00000927  getPWM0Duty                   
+0000092d  stopPWM0                      
+00000937  setMotorSpeed                 
+00000981  initADC                       
+000009ef  readADC                       
+00000a61  __aeabi_memcpy                
+00000a61  __aeabi_memcpy4               
+00000a61  __aeabi_memcpy8               
+00000a61  memcpy                        
+00000afd  __TI_decompress_lzss          
+00000b65  __TI_auto_init_nobinit_nopinit
+00000ba9  _c_int00_noargs               
+00000bdd  initSystemClockTo40Mhz        
+00000be5  initSystemClockTo80Mhz        
+00000c01  __TI_zero_init_nomemset       
+00000c1d  __TI_decompress_none          
+00000c2b  ResetISR                      
+00000c37  _system_pre_init              
+00000c3b  C$$EXIT                       
+00000c3b  abort                         
+00000c50  __TI_Handler_Table_Base       
+00000c5c  __TI_Handler_Table_Limit      
+00000c70  __TI_CINIT_Base               
+00000c80  __TI_CINIT_Limit              
 20000000  __stack                       
 20000000  __start___llvm_prf_cnts       
 20000000  __stop___llvm_prf_cnts        
 20000200  __STACK_END                   
 20000200  __STACK_TOP                   
+20000200  steerXCenter                  
+20000202  steerYCenter                  
+20000204  throttleCenter                
 ffffffff  __TI_pprof_out_hndl           
 ffffffff  __TI_prof_data_size           
 ffffffff  __TI_prof_data_start          
@@ -243,4 +267,4 @@ ffffffff  binit
 UNDEFED   __mpu_init                    
 UNDEFED   _system_post_cinit            
 
-[57 symbols]
+[63 symbols]

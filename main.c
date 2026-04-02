@@ -32,7 +32,7 @@
 #define SPEED_Y_PIN PE1     // AIN2
 #define SPEED_X_PIN PE0     // AIN3 //optional/trim
 
-
+uint16_t throttleCenter, steerXCenter, steerYCenter;
 
 typedef struct
 {
@@ -56,12 +56,43 @@ int8_t applyDeadband(int8_t value, uint8_t  threshold)
     return value;
 }
 
+void calibrateJoysticks(void)
+{
+    putsUart0("Calibrating... release joysticks\r\n");
+    _delay_cycles(80000000);    // 1 sec delay
+
+    uint32_t tSum = 0, xSum = 0, ySum = 0;
+    uint8_t i;
+    for (i = 0; i < 16; i++)
+    {
+        tSum += readADC(AIN2);
+        xSum += readADC(AIN0);
+        ySum += readADC(AIN1);
+        _delay_cycles(800000);
+    }
+    throttleCenter = tSum / 16;
+    steerXCenter = xSum / 16;
+    steerYCenter = ySum / 16;
+
+    putsUart0("Calibration done \r\n");
+}
+
+int8_t mapJoystickCalibrated(uint16_t raw, uint16_t center)
+{
+    int32_t shifted = (int32_t)raw - center;
+    int32_t range = (shifted >= 0) ? (4095 - center) : center;
+    return (int8_t)(shifted * 100 / range);
+}
+
 ControlPacket readControllerInputs(void)
 {
     ControlPacket pkt;
-    pkt.throttle = mapJoystick(readADC(AIN2));  // J2 VRy
-    pkt.steerX = mapJoystick(readADC(AIN0));    // J1 VRx
-    pkt.steerY = mapJoystick(readADC(AIN1));    // J1 VRy
+    pkt.throttle = applyDeadband(
+        mapJoystickCalibrated(readADC(AIN2), throttleCenter), DEADBAND);
+    pkt.steerX = applyDeadband(
+        mapJoystickCalibrated(readADC(AIN0), steerXCenter), DEADBAND);
+    pkt.steerY = applyDeadband(
+        mapJoystickCalibrated(readADC(AIN1), steerYCenter), DEADBAND);
     return pkt;
 }
 
@@ -80,7 +111,6 @@ void initGPIO(void)
 
 }
 
-
 void initHardware(void)
 {
     initSystemClockTo80Mhz();
@@ -90,6 +120,7 @@ void initHardware(void)
     initGPIO();
     initPWM0();
     initADC();
+    calibrateJoysticks();
 
 }
 
