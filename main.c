@@ -12,9 +12,9 @@
 #include "uart0.h"
 #include "CTI.h"
 #include "clock80.h"
-#include "PWM.h"
 #include "ADC.h"
-
+#include "spi0.h"
+#include "NRF.h"
 
 // ADC channel numbers
 #define AIN0  0   // PE3 - J1 VRx (steer X)
@@ -23,6 +23,8 @@
 #define AIN3  3   // PE0 - J2 VRx (trim, optional)
 
 #define DEADBAND 5
+
+uint8_t TxAddress[] = { 0xEE, 0xDD, 0xCC, 0xBB, 0xAA };
 
 // J1 - Movement Joystick
 #define MOVE_X_PIN PE3      // AIN0
@@ -109,6 +111,18 @@ void initGPIO(void)
     GPIO_PORTF_DIR_R |= 0x0E;
     GPIO_PORTF_DEN_R |= 0x0E;
 
+    // NRF control pins
+
+
+
+}
+
+// Pack 3 int8 values into uint32 to match teammate's transmit format
+uint32_t packPacket(ControlPacket *pkt)
+{
+    return ((uint32_t)(uint8_t)pkt->throttle << 24) |
+           ((uint32_t)(uint8_t)pkt->steerX   << 16) |
+           ((uint32_t)(uint8_t)pkt->steerY   <<  8);
 }
 
 void initHardware(void)
@@ -118,15 +132,22 @@ void initHardware(void)
     setUart0BaudRate(115200, 80000000);
 
     initGPIO();
-    initPWM0();
     initADC();
     calibrateJoysticks();
 
+
+
+    // NRF24L01 SPI setup
+    initSpi0(USE_SSI0_RX);
+    setSpi0BaudRate(8000000, 80000000);  // 1 MHz, note your clock is 80MHz not 40MHz
+    setSpi0Mode(0, 0);                   // Mode 0
+
+    NRF24_Init();
+    NRF24_TxMode(TxAddress, 10);
 }
 
 int main(void)
 {
-    USER_DATA data;
     initHardware();
 
     while(1)
@@ -142,8 +163,9 @@ int main(void)
         putintUart0((uint32_t)(pkt.steerY + 100));
         putsUart0("\r\n");
 
-        // TODO: replace with NRF24L01 transmit once SPI is ready
-        // nrfTransmit(&pkt, sizeof(pkt));
+
+        uint32_t txData = packPacket(&pkt);
+        NRF24_Transmit(0xEE);
 
         _delay_cycles(800000); // ~10ms at 80MHz, simple polling delay
     }

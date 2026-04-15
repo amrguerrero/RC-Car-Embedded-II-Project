@@ -12,9 +12,11 @@ GEN_CMDS__FLAG :=
 ORDERED_OBJS += \
 "./ADC.obj" \
 "./CTI.obj" \
-"./PWM.obj" \
+"./NRF.obj" \
 "./clock80.obj" \
+"./gpio.obj" \
 "./main.obj" \
+"./spi0.obj" \
 "./tm4c123gh6pm_startup_ccs.obj" \
 "./uart0.obj" \
 "../tm4c123gh6pm.cmd" \
@@ -147,8 +149,8 @@ Embedded\ II\ RC\ Car.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "ADC.obj" "CTI.obj" "PWM.obj" "clock80.obj" "main.obj" "tm4c123gh6pm_startup_ccs.obj" "uart0.obj" 
-	-$(RM) "ADC.d" "CTI.d" "PWM.d" "clock80.d" "main.d" "tm4c123gh6pm_startup_ccs.d" "uart0.d" 
+	-$(RM) "ADC.obj" "CTI.obj" "NRF.obj" "clock80.obj" "gpio.obj" "main.obj" "spi0.obj" "tm4c123gh6pm_startup_ccs.obj" "uart0.obj" 
+	-$(RM) "ADC.d" "CTI.d" "NRF.d" "clock80.d" "gpio.d" "main.d" "spi0.d" "tm4c123gh6pm_startup_ccs.d" "uart0.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

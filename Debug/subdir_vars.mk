@@ -11,54 +11,66 @@ CMD_SRCS += \
 C_SRCS += \
 ../ADC.c \
 ../CTI.c \
-../PWM.c \
+../NRF.c \
 ../clock80.c \
+../gpio.c \
 ../main.c \
+../spi0.c \
 ../tm4c123gh6pm_startup_ccs.c \
 ../uart0.c 
 
 C_DEPS += \
 ./ADC.d \
 ./CTI.d \
-./PWM.d \
+./NRF.d \
 ./clock80.d \
+./gpio.d \
 ./main.d \
+./spi0.d \
 ./tm4c123gh6pm_startup_ccs.d \
 ./uart0.d 
 
 OBJS += \
 ./ADC.obj \
 ./CTI.obj \
-./PWM.obj \
+./NRF.obj \
 ./clock80.obj \
+./gpio.obj \
 ./main.obj \
+./spi0.obj \
 ./tm4c123gh6pm_startup_ccs.obj \
 ./uart0.obj 
 
 OBJS__QUOTED += \
 "ADC.obj" \
 "CTI.obj" \
-"PWM.obj" \
+"NRF.obj" \
 "clock80.obj" \
+"gpio.obj" \
 "main.obj" \
+"spi0.obj" \
 "tm4c123gh6pm_startup_ccs.obj" \
 "uart0.obj" 
 
 C_DEPS__QUOTED += \
 "ADC.d" \
 "CTI.d" \
-"PWM.d" \
+"NRF.d" \
 "clock80.d" \
+"gpio.d" \
 "main.d" \
+"spi0.d" \
 "tm4c123gh6pm_startup_ccs.d" \
 "uart0.d" 
 
 C_SRCS__QUOTED += \
 "../ADC.c" \
 "../CTI.c" \
-"../PWM.c" \
+"../NRF.c" \
 "../clock80.c" \
+"../gpio.c" \
 "../main.c" \
+"../spi0.c" \
 "../tm4c123gh6pm_startup_ccs.c" \
 "../uart0.c" 
 
