@@ -1,266 +1,250 @@
-/*
- * H Bridge Pinout:
- * PB0 - Output for 1,2 EN
- * PF2 - PWM for A1
- * PF3 - PWM for A2
- *
- * Ultrasonic Sensor Pinout:
- * PB1 - Output for Trig for
- * PB2 - Input for Echo
- *
- * Servo Pinout:
- * PF1 - PWM for Servo
- *
- * NRF24L01 Pinout:
- * PB3 - Interrupt
- * PB4 - CE
- * PD0 - SCK
- * PD1 - CSN
- * PD2 - MISO
- * PD3 - MOSI
- */
+//==============================================================
+// TM4C123GXL CLEAN CONTROL SYSTEM (UPDATED PIN MAP)
+// Servo + Motor + Ultrasonic + NRF24LO1 RX
+//==============================================================
+
 #include <stdint.h>
 #include <stdbool.h>
+
 #include "tm4c123gh6pm.h"
-#include "spi1.h"
 #include "gpio.h"
-#include "uart0.h"
 #include "wait.h"
-#include "clock80.h"
-#include "CTI.h"
+#include "clock.h"
+#include "spi0.h"
+#include "NRF.h"
+#include "uart0.h"
 
-// defining pin masks
-#define HBRIDGE_EN PORTB, 0
-#define TRIG PORTB, 1
-#define ECHO PORTB, 2
-#define NRF_IRQ PORTB, 3
-#define NRF_CE  PORTB, 4
-#define NRF_CSN PORTD, 1
+//==============================================================
+// PIN DEFINITIONS (UPDATED)
+//==============================================================
 
-// PF2 and PF3 for H-Bridge PWM, since they share a load value
-// PF1 for Servo PWM, since it can have a different load value
-void initPWM(void)
+// Servo PWM
+#define SERVO_PORT PORTF
+#define SERVO_PIN  1   // PF1 M1PWM5
+
+// Motor PWM (Enable)
+#define MOTOR_PWM_PORT PORTF
+#define MOTOR_PWM_PIN  3   // PF3 M1PWM7
+
+// Motor Direction (SN754410NE)
+#define A1_PORT PORTD
+#define A1_PIN  0
+#define A2_PORT PORTD
+#define A2_PIN  1
+
+// Ultrasonic
+#define TRIG_PORT PORTC
+#define TRIG_PIN  4
+#define ECHO_PORT PORTC
+#define ECHO_PIN  5
+
+//==============================================================
+// PWM SETTINGS
+//==============================================================
+#define PWM_LOAD 12499   // 50Hz
+
+#define SERVO_MIN  625
+#define SERVO_MAX  1250
+
+volatile uint16_t motorCurrentDuty = 0;
+volatile uint16_t motorTargetDuty  = 0;
+
+//==============================================================
+// PWM INIT
+//==============================================================
+void initPwm(void)
 {
-	// Enable clocks
-	SYSCTL_RCGCPWM_R |= SYSCTL_RCGCPWM_R1;
-	SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R5;
-	_delay_cycles(3);
 
-	// PF1 → M1PWM5
-	// PF2 → M1PWM6
-	// PF3 → M1PWM7
-	setPinAuxFunction(PORTF, 1, 5); // PCTL = 0x5
-	setPinAuxFunction(PORTF, 2, 5);
-	setPinAuxFunction(PORTF, 3, 5);
+    SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R5; // Port F
+    waitMicrosecond(5);
 
-	selectPinPushPullOutput(PORTF, 1);
-	selectPinPushPullOutput(PORTF, 2);
-	selectPinPushPullOutput(PORTF, 3);
+    GPIO_PORTF_DIR_R |= (1 << 1) | (1 << 3);
+    GPIO_PORTF_DEN_R |= (1 << 1) | (1 << 3);
+    GPIO_PORTF_AFSEL_R |= (1 << 1) | (1 << 3);
+    GPIO_PORTF_PCTL_R =
+        (GPIO_PORTF_PCTL_R & 0xFFFF00FF) |
+        (GPIO_PCTL_PF1_M1PWM5 | GPIO_PCTL_PF3_M1PWM7);
 
-	SYSCTL_SRPWM_R = SYSCTL_SRPWM_R1; // reset PWM1 module
-	SYSCTL_SRPWM_R = 0;				  // leave reset state
-	PWM1_2_CTL_R = 0;				  // turn-off PWM1 generator 2 (drives outs 4 and 5)
-	PWM1_3_CTL_R = 0;				  // turn-off PWM1 generator 3 (drives outs 6 and 7)
-	PWM1_2_GENB_R = PWM_1_GENB_ACTCMPBD_ONE | PWM_1_GENB_ACTLOAD_ZERO;
-	// output 5 on PWM1, gen 2b, cmpb
-	PWM1_3_GENA_R = PWM_1_GENA_ACTCMPAD_ONE | PWM_1_GENA_ACTLOAD_ZERO;
-	// output 6 on PWM1, gen 3a, cmpa
-	PWM1_3_GENB_R = PWM_1_GENB_ACTCMPBD_ONE | PWM_1_GENB_ACTLOAD_ZERO;
-	// output 7 on PWM1, gen 3b, cmpb
+    SYSCTL_RCGCPWM_R |= SYSCTL_RCGCPWM_R1;
+    SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R5; // Port F
+    waitMicrosecond(5);
 
-	// -------------------------
-	// SERVO PWM (PF1)
-	// -------------------------
-	PWM1_2_LOAD_R = 400000 - 1;		// 20 ms period (50 Hz)
-	PWM1_2_CMPB_R = 400000 - 30000; // default 1500 us center
+    SYSCTL_RCC_R |= SYSCTL_RCC_USEPWMDIV;
+    SYSCTL_RCC_R = (SYSCTL_RCC_R & ~SYSCTL_RCC_PWMDIV_M)
+                 | SYSCTL_RCC_PWMDIV_64;
 
-	// -------------------------
-	// H-BRIDGE PWM (PF2, PF3)
-	// -------------------------
-	PWM1_3_LOAD_R = 1024; // ~20 kHz
-	PWM1_3_CMPA_R = 0;
-	PWM1_3_CMPB_R = 0;
+    SYSCTL_SRPWM_R = SYSCTL_SRPWM_R1;
+    SYSCTL_SRPWM_R = 0;
 
-	// Enable generators
-	PWM1_2_CTL_R |= PWM_1_CTL_ENABLE;
-	PWM1_3_CTL_R |= PWM_1_CTL_ENABLE;
+    //========================
+    // Servo PF1 M1PWM5 (PWM1_2)
+    //========================
+    PWM1_2_CTL_R = 0;
+    PWM1_2_LOAD_R = PWM_LOAD;
+    PWM1_2_GENB_R = PWM_1_GENB_ACTCMPBD_ONE | PWM_1_GENB_ACTLOAD_ZERO;
 
-	// Enable outputs
-	PWM1_ENABLE_R = PWM_ENABLE_PWM5EN | PWM_ENABLE_PWM6EN | PWM_ENABLE_PWM7EN;
+    //========================
+    // Motor PF3 M1PWM7 (PWM1_3)
+    //========================
+    PWM1_3_CTL_R = 0;
+    PWM1_3_LOAD_R = PWM_LOAD;
+    PWM1_3_GENB_R = PWM_1_GENB_ACTCMPBD_ONE | PWM_1_GENB_ACTLOAD_ZERO;
+
+    PWM1_2_CTL_R = PWM_1_CTL_ENABLE;
+    PWM1_3_CTL_R = PWM_1_CTL_ENABLE;
+
+    PWM1_ENABLE_R |= PWM_ENABLE_PWM5EN | PWM_ENABLE_PWM7EN;
 }
 
-void setServo(uint16_t angle)
+//==============================================================
+// SERVO (PF1)
+//==============================================================
+void initServo(void)
 {
-	// Map angle (0-180) to pulse width (500-2500 us)
-	if (angle > 180)
-		angle = 180;
-	uint16_t pulseWidth = 500 + ((uint32_t)angle * 2000) / 180;
-	PWM1_2_CMPB_R = 400000 - pulseWidth;
+    setPinAuxFunction(SERVO_PORT, SERVO_PIN, GPIO_PCTL_PF1_M1PWM5);
+    selectPinPushPullOutput(SERVO_PORT, SERVO_PIN);
 }
 
-void setHBridge(uint8_t direction, uint8_t speed)
+void setServoAngle(uint16_t angle)
 {
-	// direction: 0 = stop, 1 = forward, 2 = reverse
-	// speed: 0-100%
-	if (direction == 0)
-	{
-		PWM1_3_CMPA_R = 0;
-		PWM1_3_CMPB_R = 0;
-	}
-	else if (direction == 1)
-	{
-		PWM1_3_CMPA_R = 0;
-		PWM1_3_CMPB_R = (speed * PWM1_3_LOAD_R) / 100;
-	}
-	else if (direction == 2)
-	{
-		PWM1_3_CMPA_R = (speed * PWM1_3_LOAD_R) / 100;
-		PWM1_3_CMPB_R = 0;
-	}
+    if (angle > 180) angle = 180;
+
+    uint16_t pulse =
+        SERVO_MIN + ((SERVO_MAX - SERVO_MIN) * angle) / 180;
+
+    PWM1_2_CMPB_R = pulse;
 }
 
-void initHardware(void)
+//==============================================================
+// MOTOR (SN754410NE)
+//==============================================================
+void initMotor(void)
 {
-	// Initialize system clock 40 Mhz
-	initSystemClockTo40Mhz();
+    selectPinPushPullOutput(A1_PORT, A1_PIN);
+    selectPinPushPullOutput(A2_PORT, A2_PIN);
 
-	// enable Peripheral Clocks
-	enablePort(PORTB);
-	enablePort(PORTD);
-	enablePort(PORTF);
-
-	// Set up normal GPIO pins
-	selectPinPushPullOutput(HBRIDGE_EN);
-	selectPinPushPullOutput(NRF_CE);
-	selectPinPushPullOutput(TRIG);
-	selectPinDigitalInput(ECHO);
-	selectPinDigitalInput(NRF_IRQ);
-
-	// Set up SPI1 for NRF24L01
-	initSpi1(USE_SSI_RX);
-	setSpi1BaudRate(1000000, 40000000); // 1 MHz
-	setSpi1Mode(0, 0);					// Mode 0 (NRF requires this)
-
-	// Set up UART0 for debugging
-	initUart0();
-	setUart0BaudRate(115200, 40000000);
-
-	// Init PWM for H-Bridge and Servo
-	initPWM();
+    setPinAuxFunction(MOTOR_PWM_PORT, MOTOR_PWM_PIN,
+                      GPIO_PCTL_PF3_M1PWM7);
 }
 
-void printCommandTable(void)
+
+// ramp function (smooth acceleration)
+void updateMotorRamp(void)
 {
-    putsUart0("\r\nCommand Line Interface - RC CAR\r\n");
-    putsUart0("---------------------------------------------------------------------------------------\r\n");
-    putsUart0("CMD    | PARAMETERS                     | PURPOSE\r\n");
-    putsUart0("---------------------------------------------------------------------------------------\r\n");
-    putsUart0("DC     | Direction & Duty Cycle (0-100) | Set DC Motor\r\n");
-    putsUart0("SERVO  | Angle (0-180)                  | Set Angle\r\n");
-    putsUart0("HELP   |                                | Print Command Table\r\n");
-    putsUart0("---------------------------------------------------------------------------------------\r\n");
+    const uint16_t step = 1;
+
+    if (motorCurrentDuty < motorTargetDuty)
+        motorCurrentDuty += step;
+    else if (motorCurrentDuty > motorTargetDuty)
+        motorCurrentDuty -= step;
+
+    PWM1_3_CMPB_R = (PWM_LOAD * motorCurrentDuty) / 100;
 }
 
-void handleDC(USER_DATA *data)
+void setMotor(int8_t speed)
 {
-	if (data->fieldCount < 2)
-	{
-		putsUart0("Usage: DC <Direction> <Duty Cycle>\r\n");
-		return;
-	}
+    if (speed > 100) speed = 100;
+    if (speed < -100) speed = -100;
 
-	char *directionStr = getFieldString(data, 1);
-	uint8_t dutyCycle = getFieldInteger(data, 2);
+    // STOP
+    if (speed == 0)
+    {
+        setPinValue(A1_PORT, A1_PIN, false);
+        setPinValue(A2_PORT, A2_PIN, false);
+        motorTargetDuty = 0;
+        return;
+    }
 
-	uint8_t direction;
-	if (strcmp(directionStr, "STOP") == 0)
-		direction = 0;
-	else if (strcmp(directionStr, "FORWARD") == 0)
-		direction = 1;
-	else if (strcmp(directionStr, "REVERSE") == 0)
-		direction = 2;
-	else
-	{
-		putsUart0("Invalid direction. Use STOP, FORWARD, or REVERSE.\r\n");
-		return;
-	}
+    // Direction
+    if (speed > 0)
+    {
+        setPinValue(A1_PORT, A1_PIN, true);
+        setPinValue(A2_PORT, A2_PIN, false);
+    }
+    else
+    {
+        setPinValue(A1_PORT, A1_PIN, false);
+        setPinValue(A2_PORT, A2_PIN, true);
+        speed = -speed;
+    }
 
-	if (dutyCycle > 100)
-	{
-		putsUart0("Invalid duty cycle. Must be between 0 and 100.\r\n");
-		return;
-	}
-
-	setHBridge(direction, dutyCycle);
+    // Map 0–100 → 75–100
+    motorTargetDuty = 75 + ((speed * 25) / 100);
 }
 
-void handleServo(USER_DATA *data)
+//==============================================================
+// ULTRASONIC (PC4 / PC5)
+//==============================================================
+void initUltrasonic(void)
 {
-	if (data->fieldCount < 1)
-	{
-		putsUart0("Usage: SERVO <Angle>\r\n");
-		return;
-	}
-
-	uint16_t angle = getFieldInteger(data, 1);
-
-	if (angle > 180)
-	{
-		putsUart0("Invalid angle. Must be between 0 and 180.\r\n");
-		return;
-	}
-
-	setServo(angle);
+    selectPinDigitalInput(ECHO_PORT, ECHO_PIN);
+    selectPinPushPullOutput(TRIG_PORT, TRIG_PIN);
 }
 
-void processCommand(USER_DATA *data)
+uint32_t getDistanceCm(void)
 {
-	if (data->fieldCount == 0)
-		return;
+    uint32_t time = 0;
 
-	if (isCommand(data, "DC", 2))
-		handleDC(data);
-	else if (isCommand(data, "SERVO", 1))
-		handleServo(data);
-	else if (isCommand(data, "HELP", 0))
-        printCommandTable();
-	else
-		putsUart0("Invalid command. Type HELP.\r\n");
+    setPinValue(TRIG_PORT, TRIG_PIN, false);
+    waitMicrosecond(2);
+
+    setPinValue(TRIG_PORT, TRIG_PIN, true);
+    waitMicrosecond(10);
+    setPinValue(TRIG_PORT, TRIG_PIN, false);
+
+    uint32_t timeout = 30000;
+
+    while (!getPinValue(ECHO_PORT, ECHO_PIN))
+    {
+        if (--timeout == 0)
+            return 999; // out of range / no echo
+    }
+
+    timeout = 30000;
+    while (getPinValue(ECHO_PORT, ECHO_PIN))
+    {
+        if (--timeout == 0)
+            break;
+        waitMicrosecond(1);
+        time++;
+    }
+
+    return time / 58;
 }
 
-bool test = false;
+//==============================================================
+// MAIN
+//==============================================================
 int main(void)
 {
-    initHardware();
-    if (test)
+    initSystemClockTo40Mhz();
+
+    // Enable all GPIO ports you use
+    enablePort(PORTF);   // PF1, PF3
+    enablePort(PORTD);   // PD0, PD1
+    enablePort(PORTC);   // PC4, PC5
+
+    initPwm();
+    initServo();
+    initMotor();
+    initUltrasonic();
+
+    while (1)
     {
-        // Using a CLI to send and receive commands over UART
-        USER_DATA data;
-        printCommandTable();
+        uint32_t dist = getDistanceCm();
 
-            while (1)
-            {
-                putsUart0("\r\n> ");
-                getsUart0(&data);
+        if (dist < 15)
+        {
+            setMotor(0);
+            setServoAngle(0);
+        }
+        else
+        {
+            setMotor(60);
+            setServoAngle(90);
+        }
 
-                putsUart0(data.buffer);
-                putsUart0("\n\r'");
-
-                parseFields(&data);
-
-        #ifdef DEBUG
-                uint8_t i;
-                for (i = 0; i < data.fieldCount; i++)
-                {
-                    putcUart0(data.fieldType[i]);
-                    putcUart0('\t');
-                    putsUart0(&data.buffer[data.fieldPosition[i]]);
-                    putsUart0("\n\r'");
-                }
-        #endif
-
-                processCommand(&data);
-            }
+        updateMotorRamp();
+        waitMicrosecond(5000);
     }
-	return 0;
 }

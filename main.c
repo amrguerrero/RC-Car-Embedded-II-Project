@@ -83,25 +83,37 @@ int8_t applyDeadband(int8_t value, uint8_t  threshold)
     return value;
 }
 
+uint16_t invertADC(uint16_t raw)
+{
+    return 4095 - raw;
+}
+
 void calibrateJoysticks(void)
 {
     putsUart0("Calibrating... release joysticks\r\n");
-    _delay_cycles(80000000);    // 1 sec delay
+    _delay_cycles(160000000);
 
     uint32_t tSum = 0, xSum = 0, ySum = 0;
     uint8_t i;
-    for (i = 0; i < 16; i++)
+    for (i = 0; i < 32; i++)
     {
-        tSum += readADC(AIN2);
-        xSum += readADC(AIN0);
-        ySum += readADC(AIN1);
+        tSum += invertADC(readADC(AIN1));  // J1 VRy → throttle
+        xSum += invertADC(readADC(AIN2));  // J2 VRx → steerX
+        ySum += invertADC(readADC(AIN3));  // J2 VRy → steerY
         _delay_cycles(800000);
     }
-    throttleCenter = tSum / 16;
-    steerXCenter = xSum / 16;
-    steerYCenter = ySum / 16;
+    throttleCenter = tSum / 32;
+    steerXCenter   = xSum / 32;
+    steerYCenter   = ySum / 32;
 
-    putsUart0("Calibration done \r\n");
+    putsUart0("Centers - T:");
+    putintUart0(throttleCenter);
+    putsUart0(" X:");
+    putintUart0(steerXCenter);
+    putsUart0(" Y:");
+    putintUart0(steerYCenter);
+    putsUart0("\r\n");
+    putsUart0("Calibration done\r\n");
 }
 
 int8_t mapJoystickCalibrated(uint16_t raw, uint16_t center)
@@ -115,11 +127,11 @@ ControlPacket readControllerInputs(void)
 {
     ControlPacket pkt;
     pkt.throttle = applyDeadband(
-        mapJoystickCalibrated(readADC(AIN2), throttleCenter), DEADBAND);
+        mapJoystickCalibrated(invertADC(readADC(AIN1)), throttleCenter), DEADBAND);
     pkt.steerX = applyDeadband(
-        mapJoystickCalibrated(readADC(AIN0), steerXCenter), DEADBAND);
+        mapJoystickCalibrated(invertADC(readADC(AIN2)), steerXCenter), DEADBAND);
     pkt.steerY = applyDeadband(
-        mapJoystickCalibrated(readADC(AIN1), steerYCenter), DEADBAND);
+        mapJoystickCalibrated(invertADC(readADC(AIN3)), steerYCenter), DEADBAND);
     return pkt;
 }
 
@@ -145,9 +157,13 @@ void initGPIO(void)
 // Pack 3 int8 values into uint32 to match teammate's transmit format
 uint32_t packPacket(ControlPacket *pkt)
 {
-    return ((uint32_t)(pkt->throttle & 0xFF) << 24) |
-           ((uint32_t)(pkt->steerX   & 0xFF) << 16) |
-           ((uint32_t)(pkt->steerY   & 0xFF) <<  8);
+    uint8_t throttleByte = (uint8_t)(pkt->throttle + 100);
+    uint8_t steerByte    = (uint8_t)(pkt->steerX   + 100);
+    uint8_t steerYByte   = (uint8_t)(pkt->steerY   + 100);
+
+    return ((uint32_t)throttleByte << 16) |
+           ((uint32_t)steerByte    << 8) |
+           ((uint32_t)steerYByte   << 0);
 }
 
 void initHardware(void)
@@ -178,22 +194,28 @@ int main(void)
     {
         ControlPacket pkt = readControllerInputs();
 
-        // Debug print over UART
-        putsUart0("T:");
-        putintUart0((uint32_t)(pkt.throttle + 100)); // shift for unsigned display
-        putsUart0(" X:");
-        putintUart0((uint32_t)(pkt.steerX + 100));
-        putsUart0(" Y:");
-        putintUart0((uint32_t)(pkt.steerY + 100));
-        putsUart0("\r\n");
-
+//        putsUart0("T:");
+//        putintUart0((uint32_t)(pkt.throttle + 100));
+//        putsUart0(" X:");
+//        putintUart0((uint32_t)(pkt.steerX + 100));
+//        putsUart0(" Y:");
+//        putintUart0((uint32_t)(pkt.steerY + 100));
+//        putsUart0("\r\n");
 
         uint32_t txData = packPacket(&pkt);
-
-        // Print what you're actually sending
+//        putsUart0("TX -> T:");
+//        putintUart0((txData >> 24) & 0xFF);
+//        putsUart0(" X:");
+//        putintUart0((txData >> 16) & 0xFF);
+//        putsUart0(" Y:");
+//        putintUart0((txData >>  8) & 0xFF);
+//        putsUart0("\r\n");
 
         NRF24_Transmit(txData);
 
-        _delay_cycles(800000); // ~10ms at 80MHz, simple polling delay
+        putsUart0("RAW AIN1:");
+        putintUart0(readADC(AIN1));
+        putsUart0("\r\n");
+        _delay_cycles(800000);
     }
 }
