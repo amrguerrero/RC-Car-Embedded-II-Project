@@ -3,15 +3,24 @@
 #include "spi0.h"
 #include "tm4c123gh6pm.h"
 
-#define CSN (*((volatile uint32_t *)(0x42000000 + (0x400073FC-0x40000000)*32 + 2*4))) //PD2
-#define CE (*((volatile uint32_t *)(0x42000000 + (0x400073FC-0x40000000)*32 + 3*4))) //PD3
+/*
+
+ */
+
+#define CSN (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 3*4))) //PA3
+#define CE (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 6*4))) //PA6
 
 void init_ce_csn()
 {
-    SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R0 | SYSCTL_RCGCGPIO_R3;
-    GPIO_PORTD_DIR_R |= 0x0C;
+    SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCGPIO_R0;
+    _delay_cycles(3);
 
-    GPIO_PORTD_DEN_R |= 0x0C;
+    // PA3 = CSN output, PA6 = CE output
+    GPIO_PORTA_DIR_R |= (1 << 3) | (1 << 6);
+    GPIO_PORTA_DEN_R |= (1 << 3) | (1 << 6);
+
+    GPIO_PORTA_AFSEL_R &= ~((1 << 3) | (1 << 6));
+    GPIO_PORTA_PCTL_R &= ~(0xF << 12) & ~(0xF << 24);
 }
 
 void CS_Select()
@@ -135,7 +144,7 @@ void NRF24_Init(void)
 
     nrf24_WriteReg(RF_CH, 0);  // will be setup during Tx or RX
 
-    nrf24_WriteReg(RF_SETUP, 0x0E);   // Power= 0db, data rate = 2Mbps
+    nrf24_WriteReg(RF_SETUP, 0x06);   // Power= 0db, data rate = 2Mbps
 
     CE_Enable();
 

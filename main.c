@@ -3,6 +3,31 @@
 /**
  * main.c
  */
+
+/*
+ HARDWARE PIN OUTPUTS:
+
+ NRF24LO1
+ --------------
+ VCC        3.3V
+ GND
+ CE         PA6
+ CSN        PA3
+ SCK        PA2
+ MOSI       PA5
+ MISO       PA4
+ IRQ        Unconnected (not needed for TX)
+
+ Joysticks
+ -----------
+ J1 VRx     PE3
+ J1 VRy     PE2
+ J2 VRx     PE1
+ J2 VRy     PE0
+ VCC        3.3V
+ GND
+ */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -120,9 +145,9 @@ void initGPIO(void)
 // Pack 3 int8 values into uint32 to match teammate's transmit format
 uint32_t packPacket(ControlPacket *pkt)
 {
-    return ((uint32_t)(uint8_t)pkt->throttle << 24) |
-           ((uint32_t)(uint8_t)pkt->steerX   << 16) |
-           ((uint32_t)(uint8_t)pkt->steerY   <<  8);
+    return ((uint32_t)(pkt->throttle & 0xFF) << 24) |
+           ((uint32_t)(pkt->steerX   & 0xFF) << 16) |
+           ((uint32_t)(pkt->steerY   & 0xFF) <<  8);
 }
 
 void initHardware(void)
@@ -130,7 +155,6 @@ void initHardware(void)
     initSystemClockTo80Mhz();
     initUart0();
     setUart0BaudRate(115200, 80000000);
-
     initGPIO();
     initADC();
     calibrateJoysticks();
@@ -143,7 +167,7 @@ void initHardware(void)
     setSpi0Mode(0, 0);                   // Mode 0
 
     NRF24_Init();
-    NRF24_TxMode(TxAddress, 10);
+    NRF24_TxMode(TxAddress, 80);
 }
 
 int main(void)
@@ -165,7 +189,10 @@ int main(void)
 
 
         uint32_t txData = packPacket(&pkt);
-        NRF24_Transmit(0xEE);
+
+        // Print what you're actually sending
+
+        NRF24_Transmit(txData);
 
         _delay_cycles(800000); // ~10ms at 80MHz, simple polling delay
     }
